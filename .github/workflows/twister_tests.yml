@@ -1,36 +1,35 @@
-# Copyright (c) 2020 Intel Corporation.
-# SPDX-License-Identifier: Apache-2.0
-
 name: Twister TestSuite
-
-on:
+'on':
   push:
     branches:
     - main
     - v*-branch
     paths:
-    - 'scripts/pylib/twister/**'
-    - 'scripts/twister'
-    - 'scripts/tests/twister/**'
-    - '.github/workflows/twister_tests.yml'
+    - scripts/pylib/twister/**
+    - scripts/twister
+    - scripts/tests/twister/**
+    - .github/workflows/twister_tests.yml
   pull_request:
     branches:
     - main
     - v*-branch
     paths:
-    - 'scripts/pylib/twister/**'
-    - 'scripts/twister'
-    - 'scripts/tests/twister/**'
-    - '.github/workflows/twister_tests.yml'
-
+    - scripts/pylib/twister/**
+    - scripts/twister
+    - scripts/tests/twister/**
+    - .github/workflows/twister_tests.yml
 jobs:
   twister-tests:
     name: Twister Unit Tests
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [3.8, 3.9, '3.10']
-        os: [ubuntu-20.04]
+        python-version:
+        - 3.8
+        - 3.9
+        - '3.10'
+        os:
+        - ubuntu-latest
     steps:
     - name: checkout
       uses: actions/checkout@v3
@@ -44,16 +43,21 @@ jobs:
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ matrix.python-version }}
-        restore-keys: |
-          ${{ runner.os }}-pip-${{ matrix.python-version }}
+        restore-keys: '${{ runner.os }}-pip-${{ matrix.python-version }}
+
+          '
     - name: install-packages
-      run: |
-        pip3 install -r scripts/requirements-base.txt -r scripts/requirements-build-test.txt
+      run: 'pip3 install -r scripts/requirements-base.txt -r scripts/requirements-build-test.txt
+
+        '
     - name: Run pytest
       env:
         ZEPHYR_BASE: ./
         ZEPHYR_TOOLCHAIN_VARIANT: zephyr
-      run: |
-        west init -l . || true
+      run: 'west init -l . || true
+
         echo "Run twister tests"
+
         PYTHONPATH=./scripts/tests pytest ./scripts/tests/twister
+
+        '
