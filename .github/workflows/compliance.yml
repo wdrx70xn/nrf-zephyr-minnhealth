@@ -1,96 +1,101 @@
 name: Compliance Checks
-
-on: pull_request
-
+'on': pull_request
 jobs:
   check_compliance:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     name: Run compliance checks on patch series (PR)
     steps:
     - name: Update PATH for west
-      run: |
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
+      run: 'echo "$HOME/.local/bin" >> $GITHUB_PATH
 
+        '
     - name: Checkout the code
       uses: actions/checkout@v3
       with:
         ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 0
-
     - name: cache-pip
       uses: actions/cache@v3
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-doc-pip
-
     - name: Install python dependencies
-      run: |
-        pip3 install setuptools
+      run: 'pip3 install setuptools
+
         pip3 install wheel
+
         pip3 install python-magic lxml junitparser gitlint pylint pykwalify
+
         pip3 install west
 
+        '
     - name: west setup
       env:
         BASE_REF: ${{ github.base_ref }}
-      run: |
-        git config --global user.email "you@example.com"
+      run: 'git config --global user.email "you@example.com"
+
         git config --global user.name "Your Name"
+
         git remote -v
-        # Ensure there's no merge commits in the PR
+
+        # Ensure there''s no merge commits in the PR
+
         #[[ "$(git rev-list --merges --count origin/${BASE_REF}..)" == "0" ]] || \
+
         #(echo "::error ::Merge commits not allowed, rebase instead";false)
+
         # Sauce tag checks before rebasing
+
         # Handle single commit separately
-        if [[ "$(git rev-list --first-parent --count origin/${BASE_REF}..HEAD)" == "1" ]]; then COMMITS="--commit"; else COMMITS="--commits"; fi
+
+        if [[ "$(git rev-list --first-parent --count origin/${BASE_REF}..HEAD)" ==
+        "1" ]]; then COMMITS="--commit"; else COMMITS="--commits"; fi
+
         git rev-list --first-parent origin/${BASE_REF}..HEAD | paste -sd, | \
+
         xargs gitlint -c ncs-sauce-tags.enable=true \
+
         -c title-starts-with-subsystem.regex=".*" $COMMITS
+
         git rebase origin/${BASE_REF}
+
         # debug
+
         git log  --pretty=oneline | head -n 10
+
         west init -l . || true
+
         west update 2>&1 1> west.update.log || west update 2>&1 1> west.update2.log
 
+        '
     - name: Run Compliance Tests
       continue-on-error: true
       id: compliance
       env:
         BASE_REF: ${{ github.base_ref }}
-      run: |
-        export ZEPHYR_BASE=$PWD
+      run: 'export ZEPHYR_BASE=$PWD
+
         # debug
+
         ls -la
+
         git log  --pretty=oneline | head -n 10
+
         ./scripts/ci/check_compliance.py --annotate -e KconfigBasic -e Kconfig \
+
         -c origin/${BASE_REF}..
 
+        '
     - name: upload-results
       uses: actions/upload-artifact@v3
-      continue-on-error: True
+      continue-on-error: true
       with:
         name: compliance.xml
         path: compliance.xml
-
     - name: check-warns
-      run: |
-        if [[ ! -s "compliance.xml" ]]; then
-          exit 1;
-        fi
-
-        files=($(./scripts/ci/check_compliance.py -l))
-        for file in "${files[@]}"; do
-          f="${file}.txt"
-          if [[ -s $f ]]; then
-            errors=$(cat $f)
-            errors="${errors//'%'/'%25'}"
-            errors="${errors//$'\n'/'%0A'}"
-            errors="${errors//$'\r'/'%0D'}"
-            echo "::error file=${f}::$errors"
-            exit=1
-          fi
-        done
-
-        if [ "${exit}" == "1" ]; then
-          exit 1;
-        fi
+      run: "if [[ ! -s \"compliance.xml\" ]]; then\n  exit 1;\nfi\n\nfiles=($(./scripts/ci/check_compliance.py\
+        \ -l))\nfor file in \"${files[@]}\"; do\n  f=\"${file}.txt\"\n  if [[ -s $f\
+        \ ]]; then\n    errors=$(cat $f)\n    errors=\"${errors//'%'/'%25'}\"\n  \
+        \  errors=\"${errors//$'\\n'/'%0A'}\"\n    errors=\"${errors//$'\\r'/'%0D'}\"\
+        \n    echo \"::error file=${f}::$errors\"\n    exit=1\n  fi\ndone\n\nif [\
+        \ \"${exit}\" == \"1\" ]; then\n  exit 1;\nfi\n"
